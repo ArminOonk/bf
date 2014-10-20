@@ -5,33 +5,51 @@
 #include <stdbool.h>
 
 #define INITIAL_INSTRUCTION_SIZE 1024
+#define INITIAL_OUTPUT_SIZE 1024
+#define INITIAL_STACK_SIZE 128
 
 typedef struct
 {
 	char *commands;
+	int pointer;
 	int size;
-	int bufferSize;
 }commands;
+
+void initCommand(commands *com)
+{
+	com->commands = NULL;
+	com->pointer = 0;
+	com->size = 0;
+}
 
 bool addCommand(commands *com, char c)
 {
-
-	if(com->size >= com->bufferSize)
+	if(com->pointer >= com->size)
 	{
 		// Re allocate memory
-		int newBufferSize = com->bufferSize+INITIAL_INSTRUCTION_SIZE;
-		//printf("Allocating memory. Current size: %d New size: %d\n", com->bufferSize, newBufferSize);
+		int newBufferSize = com->size+INITIAL_INSTRUCTION_SIZE;
+		//printf("Allocating memory. Current size: %d New size: %d\n", com->size, newBufferSize);
 		
 		com->commands = realloc(com->commands, newBufferSize);
 		if(com->commands == NULL)
 		{
 			return false;
 		}
-		com->bufferSize = newBufferSize;
+		com->size = newBufferSize;
 	}
-	com->commands[com->size] = c;
-	com->size++;
+	com->commands[com->pointer] = c;
+	com->pointer++;
 	return true;
+}
+
+void printCommand(commands *com)
+{
+	printf("Size: %d Size: %d\n", com->pointer, com->size);
+	for(int i=0; i<com->pointer; i++)
+	{
+		printf("%c", com->commands[i]);
+	}
+	printf("\n");
 }
 
 void cleanupCommand(commands *com)
@@ -39,21 +57,119 @@ void cleanupCommand(commands *com)
 	free(com->commands);
 }
 
-void initCommand(commands *com)
+typedef struct
 {
-	com->commands = NULL;
-	com->size = 0;
-	com->bufferSize = 0;
+	int *stack;
+	int pointer;
+	int size;
+}stack;
+
+void initStack(stack *st)
+{
+	st->stack = NULL;
+	st->pointer = 0;
+	st->size = 0;
 }
 
-void printCommand(commands *com)
+bool pushStack(stack *st, int index)
 {
-	printf("Size: %d bufferSize: %d\n", com->size, com->bufferSize);
-	for(int i=0; i<com->size; i++)
+	if(st->pointer >= st->size)
 	{
-		printf("%c", com->commands[i]);
+		int newBufferSize = st->size+INITIAL_STACK_SIZE;
+		st->stack = realloc(st->stack, sizeof(int)*newBufferSize);
+		if(st->stack == NULL)
+		{
+			return false;
+		}
+		st->size = newBufferSize;
 	}
-	printf("\n");
+	st->stack[st->pointer] = index;
+	st->pointer++;
+	return true;
+}
+
+int popStack(stack *st)
+{
+	if(st->pointer <= 0)
+	{
+		return -1;
+	}
+	
+	int retVal = st->stack[st->pointer];
+	st->pointer--;
+	return retVal;
+}
+
+void cleanupStack(stack *st)
+{
+	free(st->stack);
+}
+
+typedef struct
+{
+	char *buffer;
+	int pointer;
+	int size;
+}output;
+
+void initOutput(output *out)
+{
+	out->buffer = NULL;
+	out->pointer = 0;
+	out->size = 0;
+}
+
+bool addOutput(output *out, char c)
+{
+	if(out->pointer >= out->size)
+	{
+		// Re allocate memory
+		int newBufferSize = out->size+INITIAL_OUTPUT_SIZE;
+		
+		out->buffer = realloc(out->buffer, newBufferSize);
+		if(out->buffer == NULL)
+		{
+			return false;
+		}
+		out->size = newBufferSize;
+	}
+	out->buffer[out->pointer] = c;
+	out->pointer++;
+	return true;
+}
+
+void cleanupOutput(output *out)
+{
+	free(out->buffer);
+}
+
+typedef struct
+{
+	stack *st;
+	commands *com;
+	output *output;	
+}environment;
+
+void initEnvironment(environment *env)
+{
+	env->st = malloc(sizeof(stack));
+	env->com = malloc(sizeof(commands));
+	env->output = malloc(sizeof(output));
+	
+	initStack(env->st);
+	initCommand(env->com);
+	initOutput(env->output);
+}
+
+void cleanupEnvironment(environment *env)
+{
+	cleanupStack(env->st);
+	cleanupCommand(env->com);
+	cleanupOutput(env->output);
+
+	free(env->st);
+	free(env->com);
+	free(env->output);
 }
 
 int readFile(char *filename, commands *com)
@@ -123,14 +239,16 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-	commands com;
-	initCommand(&com);
-	
-	if(readFile(argv[1], &com) < 0)
+	environment env;
+	initEnvironment(&env);
+		
+	if(readFile(argv[1], env.com) < 0)
 	{
 		printf("Error reading file\n");
 	}
 	
-	printCommand(&com);
-	cleanupCommand(&com);
+	printCommand(env.com);
+	
+	
+	cleanupEnvironment(&env);
 }
