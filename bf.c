@@ -8,6 +8,7 @@
 #define INITIAL_OUTPUT_SIZE 1024
 #define INITIAL_STACK_SIZE 128
 
+#define ARRAY_SIZE 32768
 typedef struct
 {
 	char *commands;
@@ -148,10 +149,20 @@ typedef struct
 	stack *st;
 	commands *com;
 	output *output;	
+	
+	char array[ARRAY_SIZE];
+	int pointer;
+	
+	int commandCounter;
 }environment;
 
 void initEnvironment(environment *env)
 {
+	env->pointer = 0;
+	memset(env->array, 0x00, ARRAY_SIZE);
+	
+	env->commandCounter = 0;
+	
 	env->st = malloc(sizeof(stack));
 	env->com = malloc(sizeof(commands));
 	env->output = malloc(sizeof(output));
@@ -159,6 +170,74 @@ void initEnvironment(environment *env)
 	initStack(env->st);
 	initCommand(env->com);
 	initOutput(env->output);
+}
+
+void runEnvironment(environment *env)
+{
+	bool finished = false;
+	
+	while(!finished)
+	{
+		if(env->pointer >= env->com->size)
+		{
+			break;
+		}
+		
+		// ERROR env->pointer is niet de pointer naar de command list
+		switch(env->com->commands[env->commandCounter])
+		{
+			case '>':
+			env->pointer++;
+			
+			if(env->pointer >= ARRAY_SIZE)
+			{
+				env->pointer = 0;
+			}
+			break;
+			
+			case '<':
+			env->pointer--;
+						
+			if(env->pointer < 0)
+			{
+				env->pointer = ARRAY_SIZE-1;
+			}
+			break;
+			
+			case '+':
+				env->array[env->pointer]++;
+			break;
+			
+			case '-':
+				env->array[env->pointer]--;
+			break;
+			
+			case '.':
+				addOutput(env->output, env->array[env->pointer]);
+			break;
+			
+			case ',':
+				// TODO: Implement this
+			break;
+			
+			case '[':
+				/*if(env->array[env->pointer] == 0)
+				{
+					//Find closing bracket
+					while(env->commandCounter <= env->com->size && env->com->commands[env->commandCounter] != ']')
+					{
+						env->commandCounter++;
+					}
+				}*/
+			break;
+			
+			case ']':
+			
+			break;
+		}
+		
+		env->commandCounter++;
+	}
 }
 
 void cleanupEnvironment(environment *env)
