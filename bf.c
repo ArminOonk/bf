@@ -139,6 +139,16 @@ bool addOutput(output *out, char c)
 	return true;
 }
 
+void printOutput(output *out)
+{
+	printf("Output: ");
+	for(int i=0; i<out->size; i++)
+	{
+		printf("%c", out->buffer[i]);
+	}
+	printf("\n");
+}
+
 void cleanupOutput(output *out)
 {
 	free(out->buffer);
@@ -221,14 +231,18 @@ void runEnvironment(environment *env)
 			break;
 			
 			case '[':
-				/*if(env->array[env->pointer] == 0)
+				if(env->array[env->pointer] == 0)
 				{
 					//Find closing bracket
 					while(env->commandCounter <= env->com->size && env->com->commands[env->commandCounter] != ']')
 					{
 						env->commandCounter++;
 					}
-				}*/
+				}
+				else
+				{
+					pushStack(env->st, env->commandCounter);
+				}
 			break;
 			
 			case ']':
@@ -237,6 +251,11 @@ void runEnvironment(environment *env)
 		}
 		
 		env->commandCounter++;
+
+		if(env->commandCounter == env->com->size)
+		{
+			finished = true;
+		}
 	}
 }
 
@@ -328,6 +347,8 @@ int main(int argc, char **argv)
 	
 	printCommand(env.com);
 	
+	runEnvironment(&env);
+	printOutput(env.output);
 	
 	cleanupEnvironment(&env);
 }
