@@ -77,6 +77,8 @@ bool pushStack(stack *st, int index)
 	if(st->pointer >= st->size)
 	{
 		int newBufferSize = st->size+INITIAL_STACK_SIZE;
+		printf("Alloc: %d new %d\n", st->size, newBufferSize);
+		
 		st->stack = realloc(st->stack, sizeof(int)*newBufferSize);
 		if(st->stack == NULL)
 		{
@@ -96,8 +98,9 @@ int popStack(stack *st)
 		return -1;
 	}
 	
-	int retVal = st->stack[st->pointer];
 	st->pointer--;
+	int retVal = st->stack[st->pointer];
+	
 	return retVal;
 }
 
@@ -193,6 +196,7 @@ void runEnvironment(environment *env)
 			break;
 		}
 		
+		int ret = 0;
 		// ERROR env->pointer is niet de pointer naar de command list
 		switch(env->com->commands[env->commandCounter])
 		{
@@ -241,22 +245,47 @@ void runEnvironment(environment *env)
 				}
 				else
 				{
+					printf("push: %d\n", env->commandCounter);
 					pushStack(env->st, env->commandCounter);
 				}
 			break;
 			
 			case ']':
-			
+				ret = popStack(env->st);
+				if(ret != -1)
+				{
+					printf("pop: %d\n", ret);
+					env->commandCounter = ret-1; 	// command counter is incremented after the switch
+				}
 			break;
 		}
 		
 		env->commandCounter++;
 
-		if(env->commandCounter == env->com->size)
+		if(env->commandCounter >= env->com->size)
 		{
 			finished = true;
 		}
 	}
+}
+
+void printArray(environment *env, int len)
+{
+	printf("Raw array: ");
+	for(int i=0; i<len; i++)
+	{
+		if(i%16 == 0)
+		{
+			printf("\n");
+		}
+		else if(i%16 == 8)
+		{
+			printf(" ");
+		}
+		
+		printf("0x%02X ", env->array[i]);
+	}
+	printf("\n");
 }
 
 void cleanupEnvironment(environment *env)
@@ -349,6 +378,7 @@ int main(int argc, char **argv)
 	
 	runEnvironment(&env);
 	printOutput(env.output);
+	printArray(&env, 32);
 	
 	cleanupEnvironment(&env);
 }
