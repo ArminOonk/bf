@@ -29,7 +29,6 @@ bool addCommand(commands *com, char c)
 	{
 		// Re allocate memory
 		int newBufferSize = com->size+INITIAL_INSTRUCTION_SIZE;
-		//printf("Allocating memory. Current size: %d New size: %d\n", com->size, newBufferSize);
 		
 		com->commands = realloc(com->commands, newBufferSize);
 		if(com->commands == NULL)
@@ -77,7 +76,6 @@ bool pushStack(stack *st, int index)
 	if(st->pointer >= st->size)
 	{
 		int newBufferSize = st->size+INITIAL_STACK_SIZE;
-		printf("Alloc: %d new %d\n", st->size, newBufferSize);
 		
 		st->stack = realloc(st->stack, sizeof(int)*newBufferSize);
 		if(st->stack == NULL)
@@ -144,8 +142,8 @@ bool addOutput(output *out, char c)
 
 void printOutput(output *out)
 {
-	printf("Output: ");
-	for(int i=0; i<out->size; i++)
+	printf("Output size %d : ", out->pointer);
+	for(int i=0; i<out->pointer; i++)
 	{
 		printf("%c", out->buffer[i]);
 	}
@@ -193,77 +191,80 @@ void runEnvironment(environment *env)
 	{
 		if(env->pointer >= env->com->size)
 		{
+			printf("Break: %d %d\n", env->pointer, env->com->size);
 			break;
 		}
 		
-		int ret = 0;
-		// ERROR env->pointer is niet de pointer naar de command list
-		switch(env->com->commands[env->commandCounter])
+		char curCom = env->com->commands[env->commandCounter];
+		
+		if(curCom == '>')
 		{
-			case '>':
 			env->pointer++;
 			
 			if(env->pointer >= ARRAY_SIZE)
 			{
 				env->pointer = 0;
 			}
-			break;
-			
-			case '<':
+		}
+		else if(curCom == '<')
+		{
 			env->pointer--;
 						
 			if(env->pointer < 0)
 			{
+				printf("Array overflow: commandCounter: %d env->pointer: %d\n", env->commandCounter, env->pointer);
 				env->pointer = ARRAY_SIZE-1;
 			}
-			break;
-			
-			case '+':
-				env->array[env->pointer]++;
-			break;
-			
-			case '-':
-				env->array[env->pointer]--;
-			break;
-			
-			case '.':
-				addOutput(env->output, env->array[env->pointer]);
-			break;
-			
-			case ',':
-				// TODO: Implement this
-			break;
-			
-			case '[':
-				if(env->array[env->pointer] == 0)
+		}
+		else if(curCom == '+')
+		{
+			env->array[env->pointer]++;
+		}
+		else if(curCom == '-')
+		{
+			env->array[env->pointer]--;
+		}
+		else if(curCom == '.')
+		{
+			printf(". : %c 0x%02X\n", env->array[env->pointer], env->array[env->pointer]);
+			addOutput(env->output, env->array[env->pointer]);
+		}
+		else if(curCom == ',')
+		{
+			// TODO: Implement this
+		}
+		else if(curCom == '[')
+		{
+			if(env->array[env->pointer] == 0)
+			{
+				//Find closing bracket
+				while(env->commandCounter <= env->com->size && env->com->commands[env->commandCounter] != ']')
 				{
-					//Find closing bracket
-					while(env->commandCounter <= env->com->size && env->com->commands[env->commandCounter] != ']')
-					{
-						env->commandCounter++;
-					}
+					env->commandCounter++;
 				}
-				else
-				{
-					printf("push: %d\n", env->commandCounter);
-					pushStack(env->st, env->commandCounter);
-				}
-			break;
-			
-			case ']':
-				ret = popStack(env->st);
-				if(ret != -1)
-				{
-					printf("pop: %d\n", ret);
-					env->commandCounter = ret-1; 	// command counter is incremented after the switch
-				}
-			break;
+			}
+			else
+			{
+				//printf("push: %d\n", env->commandCounter);
+				pushStack(env->st, env->commandCounter);
+			}
+		}
+		else if(curCom == ']')
+		{
+			int ret = popStack(env->st);
+			if(ret != -1)
+			{
+				//printf("pop: %d\n", ret);
+				env->commandCounter = ret-1; 	// command counter is incremented after the switch
+			}
 		}
 		
 		env->commandCounter++;
+		printf("%d/%d\n", env->commandCounter, env->com->pointer);
 
-		if(env->commandCounter >= env->com->size)
+		if(env->commandCounter >= env->com->pointer)
 		{
+			printf("Last command %d/%d\n", env->commandCounter, env->com->pointer);
 			finished = true;
 		}
 	}
