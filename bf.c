@@ -59,40 +59,40 @@ void cleanupCommand(commands *com)
 typedef struct
 {
 	char *buffer;
-	int pointer;
-	int size;
+	int length;
+	int reserved;
 }output;
 
 void initOutput(output *out)
 {
 	out->buffer = NULL;
-	out->pointer = 0;
-	out->size = 0;
+	out->length = 0;
+	out->reserved = 0;
 }
 
 bool addOutput(output *out, char c)
 {
-	if(out->pointer >= out->size)
+	if(out->length >= out->reserved)
 	{
 		// Re allocate memory
-		int newBufferSize = out->size+INITIAL_OUTPUT_SIZE;
+		int newBufferSize = out->reserved+INITIAL_OUTPUT_SIZE;
 		
 		out->buffer = realloc(out->buffer, newBufferSize);
 		if(out->buffer == NULL)
 		{
 			return false;
 		}
-		out->size = newBufferSize;
+		out->reserved = newBufferSize;
 	}
-	out->buffer[out->pointer] = c;
-	out->pointer++;
+	out->buffer[out->length] = c;
+	out->length++;
 	return true;
 }
 
 void printOutput(output *out)
 {
-	printf("Output size %d : ", out->pointer);
-	for(int i=0; i<out->pointer; i++)
+	printf("Output size %d : ", out->length);
+	for(int i=0; i<out->length; i++)
 	{
 		printf("%c", out->buffer[i]);
 	}
@@ -304,6 +304,19 @@ int readFile(char *filename, commands *com)
 	fclose(readFP);
 	return index;
 }
+
+#define OP_MASK 0xE0
+#define COUNT_MASK ~OP_MASK
+
+#define OP_PTR_INC 		(0<<5)
+#define OP_PTR_DEC 		(1<<5)
+#define OP_DATA_INC 	(2<<5)
+#define OP_DATA_DEC 	(3<<5)
+#define OP_INPUT 		(4<<5)
+#define OP_OUTPUT 		(5<<5)
+#define OP_LOOP_START 	(6<<5)
+#define OP_LOOP_STOP 	(7<<5)
+
 
 int main(int argc, char **argv)
 {
