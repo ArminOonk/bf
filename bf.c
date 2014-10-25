@@ -56,7 +56,7 @@ void cleanupCommand(commands *com)
 {
 	free(com->commands);
 }
-
+/*
 typedef struct
 {
 	int *stack;
@@ -105,7 +105,7 @@ int popStack(stack *st)
 void cleanupStack(stack *st)
 {
 	free(st->stack);
-}
+}*/
 
 typedef struct
 {
@@ -157,7 +157,7 @@ void cleanupOutput(output *out)
 
 typedef struct
 {
-	stack *st;
+	//stack *st;
 	commands *com;
 	output *output;	
 	
@@ -174,11 +174,11 @@ void initEnvironment(environment *env)
 	
 	env->commandCounter = 0;
 	
-	env->st = malloc(sizeof(stack));
+	//env->st = malloc(sizeof(stack));
 	env->com = malloc(sizeof(commands));
 	env->output = malloc(sizeof(output));
 	
-	initStack(env->st);
+	//initStack(env->st);
 	initCommand(env->com);
 	initOutput(env->output);
 }
@@ -220,7 +220,6 @@ void runEnvironment(environment *env)
 		}
 		else if(curCom == '.')
 		{
-			printf(". : %c 0x%02X\n", env->array[env->pointer], env->array[env->pointer]);
 			addOutput(env->output, env->array[env->pointer]);
 		}
 		else if(curCom == ',')
@@ -245,27 +244,10 @@ void runEnvironment(environment *env)
 						bal--;
 					}
 				}while ( bal != 0 );
-				
-				/*while(env->commandCounter <= env->com->size && env->com->commands[env->commandCounter] != ']')
-				{
-					env->commandCounter++;
-				}
-				printf("Openbracket fast forward, next command[%d]: %c\n", env->commandCounter, env->com->commands[env->commandCounter]);*/
-			}
-			else
-			{
-				//printf("push: %d\n", env->commandCounter);
-				//pushStack(env->st, env->commandCounter);
 			}
 		}
 		else if(curCom == ']')
 		{
-			/*int ret = popStack(env->st);
-			if(ret != -1)
-			{
-				//printf("pop: %d\n", ret);
-				env->commandCounter = ret-1; 	// command counter is incremented after the switch
-			}*/
 			int bal = 0;
 			do {
 				if      (env->com->commands[env->commandCounter] == '[') 
@@ -313,11 +295,11 @@ void printArray(environment *env, int len)
 
 void cleanupEnvironment(environment *env)
 {
-	cleanupStack(env->st);
+	//cleanupStack(env->st);
 	cleanupCommand(env->com);
 	cleanupOutput(env->output);
 
-	free(env->st);
+	//free(env->st);
 	free(env->com);
 	free(env->output);
 }
