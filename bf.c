@@ -109,15 +109,23 @@ typedef struct
 	commands *com;
 	output *output;	
 	
+	// Working memory
 	char array[ARRAY_SIZE];
-	int pointer;
+	int arrayPtr;
 	
+	// Command counter
 	int commandCounter;
+	
+	// Input
+	char *input;
+	int inputSize;
+	int inputPtr;
+	
 }environment;
 
 void initEnvironment(environment *env)
 {
-	env->pointer = 0;
+	env->arrayPtr = 0;
 	memset(env->array, 0x00, ARRAY_SIZE);
 	
 	env->commandCounter = 0;
@@ -127,11 +135,27 @@ void initEnvironment(environment *env)
 
 	initCommand(env->com);
 	initOutput(env->output);
+	
+	env->input = NULL;
+	env->inputSize = 0;
+	env->inputPtr = 0;
 }
 
 bool commandAvailable(environment *env)
 {
 	return (env->commandCounter < env->com->pointer) && (env->commandCounter >= 0);
+}
+
+int getInput(environment *env)
+{
+	if(env->input == NULL || (env->inputPtr >= env->inputSize))
+	{
+		return -1;
+	}
+	
+	char retVal = env->input[env->inputPtr];
+	env->inputPtr++;
+	return retVal;
 }
 
 unsigned int runEnvironment(environment *env, unsigned int maxInstructions)
@@ -144,41 +168,46 @@ unsigned int runEnvironment(environment *env, unsigned int maxInstructions)
 		
 		if(curCom == '>')
 		{
-			env->pointer++;
+			env->arrayPtr++;
 			
-			if(env->pointer >= ARRAY_SIZE)
+			if(env->arrayPtr >= ARRAY_SIZE)
 			{
-				env->pointer = 0;
+				env->arrayPtr = 0;
 			}
 		}
 		else if(curCom == '<')
 		{
-			env->pointer--;
+			env->arrayPtr--;
 						
-			if(env->pointer < 0)
+			if(env->arrayPtr < 0)
 			{
-				env->pointer = ARRAY_SIZE-1;
+				env->arrayPtr = ARRAY_SIZE-1;
 			}
 		}
 		else if(curCom == '+')
 		{
-			env->array[env->pointer]++;
+			env->array[env->arrayPtr]++;
 		}
 		else if(curCom == '-')
 		{
-			env->array[env->pointer]--;
+			env->array[env->arrayPtr]--;
 		}
 		else if(curCom == '.')
 		{
-			addOutput(env->output, env->array[env->pointer]);
+			addOutput(env->output, env->array[env->arrayPtr]);
 		}
 		else if(curCom == ',')
 		{
 			// TODO: Implement this
+			int input = getInput(env);
+			if(input != -1)
+			{
+				env->array[env->arrayPtr] = input;
+			}
 		}
 		else if(curCom == '[')
 		{
-			if(env->array[env->pointer] == 0)
+			if(env->array[env->arrayPtr] == 0)
 			{
 				//Find closing bracket
 				int bal = 1;
