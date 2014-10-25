@@ -44,7 +44,7 @@ bool addCommand(commands *com, char c)
 
 void printCommand(commands *com)
 {
-	printf("Size: %d Size: %d\n", com->pointer, com->size);
+	printf("Size: %d Commands BufferSize: %d\n", com->pointer, com->size);
 	for(int i=0; i<com->pointer; i++)
 	{
 		printf("%c", com->commands[i]);
@@ -189,12 +189,6 @@ void runEnvironment(environment *env)
 	
 	while(!finished)
 	{
-		if(env->pointer >= env->com->size)
-		{
-			printf("Break: %d %d\n", env->pointer, env->com->size);
-			break;
-		}
-		
 		char curCom = env->com->commands[env->commandCounter];
 		
 		if(curCom == '>')
@@ -238,29 +232,57 @@ void runEnvironment(environment *env)
 			if(env->array[env->pointer] == 0)
 			{
 				//Find closing bracket
-				while(env->commandCounter <= env->com->size && env->com->commands[env->commandCounter] != ']')
+				int bal = 1;
+				do 
+				{
+					env->commandCounter++;
+					if(env->com->commands[env->commandCounter] == '[') 
+					{
+						bal++;
+					}
+					else if (env->com->commands[env->commandCounter] == ']')
+					{
+						bal--;
+					}
+				}while ( bal != 0 );
+				
+				/*while(env->commandCounter <= env->com->size && env->com->commands[env->commandCounter] != ']')
 				{
 					env->commandCounter++;
 				}
+				printf("Openbracket fast forward, next command[%d]: %c\n", env->commandCounter, env->com->commands[env->commandCounter]);*/
 			}
 			else
 			{
 				//printf("push: %d\n", env->commandCounter);
-				pushStack(env->st, env->commandCounter);
+				//pushStack(env->st, env->commandCounter);
 			}
 		}
 		else if(curCom == ']')
 		{
-			int ret = popStack(env->st);
+			/*int ret = popStack(env->st);
 			if(ret != -1)
 			{
 				//printf("pop: %d\n", ret);
 				env->commandCounter = ret-1; 	// command counter is incremented after the switch
-			}
+			}*/
+			int bal = 0;
+			do {
+				if      (env->com->commands[env->commandCounter] == '[') 
+				{
+					bal++;
+				}
+				else if (env->com->commands[env->commandCounter] == ']') 
+				{
+					bal--;
+				}
+				env->commandCounter--;
+			} while ( bal != 0 );
+  
 		}
 		
+		printf("Command: '%c' %d/%d Array[%d]= %d\n", curCom, env->commandCounter, env->com->pointer, env->pointer, env->array[env->pointer]);
 		env->commandCounter++;
-		printf("%d/%d\n", env->commandCounter, env->com->pointer);
 
 		if(env->commandCounter >= env->com->pointer)
 		{
