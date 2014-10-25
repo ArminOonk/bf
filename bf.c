@@ -28,20 +28,20 @@
 typedef struct
 {
 	char *commands;
-	int pointer;
+	int size;
 	int reserved;
 }commands;
 
 void initCommand(commands *com)
 {
 	com->commands = NULL;
-	com->pointer = 0;
+	com->size = 0;
 	com->reserved = 0;
 }
 
 bool addCommand(commands *com, char c)
 {
-	if(com->pointer >= com->reserved)
+	if(com->size >= com->reserved)
 	{
 		// Re allocate memory
 		int newBufferSize = com->reserved+INITIAL_INSTRUCTION_SIZE;
@@ -53,15 +53,15 @@ bool addCommand(commands *com, char c)
 		}
 		com->reserved = newBufferSize;
 	}
-	com->commands[com->pointer] = c;
-	com->pointer++;
+	com->commands[com->size] = c;
+	com->size++;
 	return true;
 }
 
 void printCommand(commands *com)
 {
-	printf("Size: %d Commands BufferSize: %d\n", com->pointer, com->reserved);
-	for(int i=0; i<com->pointer; i++)
+	printf("Size: %d Commands BufferSize: %d\n", com->size, com->reserved);
+	for(int i=0; i<com->size; i++)
 	{
 		printf("%c", com->commands[i]);
 	}
@@ -160,7 +160,7 @@ void initEnvironment(environment *env)
 
 bool commandAvailable(environment *env)
 {
-	return (env->commandCounter < env->com->pointer) && (env->commandCounter >= 0);
+	return (env->commandCounter < env->com->size) && (env->commandCounter >= 0);
 }
 
 int getInput(environment *env)
