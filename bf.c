@@ -134,9 +134,9 @@ bool commandAvailable(environment *env)
 	return (env->commandCounter < env->com->pointer) && (env->commandCounter >= 0);
 }
 
-int runEnvironment(environment *env, int maxInstructions)
+unsigned int runEnvironment(environment *env, unsigned int maxInstructions)
 {	
-	int instructions = 0;
+	unsigned int instructions = 0;
 	while(commandAvailable(env) && instructions < maxInstructions)
 	{
 		instructions++;
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 	
 	printCommand(env.com);
 	
-	int instructions = runEnvironment(&env, 10000);
+	unsigned int instructions = runEnvironment(&env, 0xffffffff);
 	printf("Instructions required: %d\n", instructions);
 	printOutput(env.output);
 	//printArray(&env, 32);
