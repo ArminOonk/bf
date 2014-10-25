@@ -323,8 +323,8 @@ int main(int argc, char **argv)
 	
 	printCommand(env.com);
 	
-	unsigned int instructions = runEnvironment(&env, 0xffffffff);
-	printf("Instructions required: %d\n", instructions);
+	unsigned int instructions = runEnvironment(&env, (0xffffffff-1));
+	printf("Instructions required: %u\n", instructions);
 	printOutput(env.output);
 	//printArray(&env, 32);
 	
