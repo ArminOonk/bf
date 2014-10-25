@@ -6,7 +6,6 @@
 
 #define INITIAL_INSTRUCTION_SIZE 1024
 #define INITIAL_OUTPUT_SIZE 1024
-#define INITIAL_STACK_SIZE 128
 
 #define ARRAY_SIZE 32768
 typedef struct
@@ -56,56 +55,6 @@ void cleanupCommand(commands *com)
 {
 	free(com->commands);
 }
-/*
-typedef struct
-{
-	int *stack;
-	int pointer;
-	int size;
-}stack;
-
-void initStack(stack *st)
-{
-	st->stack = NULL;
-	st->pointer = 0;
-	st->size = 0;
-}
-
-bool pushStack(stack *st, int index)
-{
-	if(st->pointer >= st->size)
-	{
-		int newBufferSize = st->size+INITIAL_STACK_SIZE;
-		
-		st->stack = realloc(st->stack, sizeof(int)*newBufferSize);
-		if(st->stack == NULL)
-		{
-			return false;
-		}
-		st->size = newBufferSize;
-	}
-	st->stack[st->pointer] = index;
-	st->pointer++;
-	return true;
-}
-
-int popStack(stack *st)
-{
-	if(st->pointer <= 0)
-	{
-		return -1;
-	}
-	
-	st->pointer--;
-	int retVal = st->stack[st->pointer];
-	
-	return retVal;
-}
-
-void cleanupStack(stack *st)
-{
-	free(st->stack);
-}*/
 
 typedef struct
 {
@@ -157,7 +106,6 @@ void cleanupOutput(output *out)
 
 typedef struct
 {
-	//stack *st;
 	commands *com;
 	output *output;	
 	
@@ -173,14 +121,17 @@ void initEnvironment(environment *env)
 	memset(env->array, 0x00, ARRAY_SIZE);
 	
 	env->commandCounter = 0;
-	
-	//env->st = malloc(sizeof(stack));
+
 	env->com = malloc(sizeof(commands));
 	env->output = malloc(sizeof(output));
-	
-	//initStack(env->st);
+
 	initCommand(env->com);
 	initOutput(env->output);
+}
+
+bool commandAvailable(environment *env)
+{
+	return (env->commandCounter < env->com->pointer) && (env->commandCounter >= 0);
 }
 
 void runEnvironment(environment *env)
@@ -206,7 +157,6 @@ void runEnvironment(environment *env)
 						
 			if(env->pointer < 0)
 			{
-				printf("Array overflow: commandCounter: %d env->pointer: %d\n", env->commandCounter, env->pointer);
 				env->pointer = ARRAY_SIZE-1;
 			}
 		}
@@ -243,14 +193,15 @@ void runEnvironment(environment *env)
 					{
 						bal--;
 					}
-				}while ( bal != 0 );
+				}while ( bal != 0 && commandAvailable(env));
 			}
 		}
 		else if(curCom == ']')
 		{
 			int bal = 0;
-			do {
-				if      (env->com->commands[env->commandCounter] == '[') 
+			do 
+			{
+				if(env->com->commands[env->commandCounter] == '[') 
 				{
 					bal++;
 				}
@@ -259,16 +210,13 @@ void runEnvironment(environment *env)
 					bal--;
 				}
 				env->commandCounter--;
-			} while ( bal != 0 );
-  
+			} while ( bal != 0 && commandAvailable(env));
 		}
 		
-		printf("Command: '%c' %d/%d Array[%d]= %d\n", curCom, env->commandCounter, env->com->pointer, env->pointer, env->array[env->pointer]);
 		env->commandCounter++;
 
-		if(env->commandCounter >= env->com->pointer)
+		if(!commandAvailable(env))
 		{
-			printf("Last command %d/%d\n", env->commandCounter, env->com->pointer);
 			finished = true;
 		}
 	}
@@ -295,11 +243,9 @@ void printArray(environment *env, int len)
 
 void cleanupEnvironment(environment *env)
 {
-	//cleanupStack(env->st);
 	cleanupCommand(env->com);
 	cleanupOutput(env->output);
 
-	//free(env->st);
 	free(env->com);
 	free(env->output);
 }
