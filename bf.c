@@ -136,9 +136,9 @@ bool commandAvailable(environment *env)
 
 void runEnvironment(environment *env)
 {
-	bool finished = false;
+	//bool finished = false;
 	
-	while(!finished)
+	while(commandAvailable(env))
 	{
 		char curCom = env->com->commands[env->commandCounter];
 		
@@ -215,10 +215,10 @@ void runEnvironment(environment *env)
 		
 		env->commandCounter++;
 
-		if(!commandAvailable(env))
+		/*if(!commandAvailable(env))
 		{
 			finished = true;
-		}
+		}*/
 	}
 }
 
