@@ -134,12 +134,12 @@ bool commandAvailable(environment *env)
 	return (env->commandCounter < env->com->pointer) && (env->commandCounter >= 0);
 }
 
-void runEnvironment(environment *env)
-{
-	//bool finished = false;
-	
-	while(commandAvailable(env))
+int runEnvironment(environment *env, int maxInstructions)
+{	
+	int instructions = 0;
+	while(commandAvailable(env) && instructions < maxInstructions)
 	{
+		instructions++;
 		char curCom = env->com->commands[env->commandCounter];
 		
 		if(curCom == '>')
@@ -214,12 +214,8 @@ void runEnvironment(environment *env)
 		}
 		
 		env->commandCounter++;
-
-		/*if(!commandAvailable(env))
-		{
-			finished = true;
-		}*/
 	}
+	return instructions;
 }
 
 void printArray(environment *env, int len)
@@ -327,9 +323,10 @@ int main(int argc, char **argv)
 	
 	printCommand(env.com);
 	
-	runEnvironment(&env);
+	int instructions = runEnvironment(&env, 10000);
+	printf("Instructions required: %d\n", instructions);
 	printOutput(env.output);
-	printArray(&env, 32);
+	//printArray(&env, 32);
 	
 	cleanupEnvironment(&env);
 }
