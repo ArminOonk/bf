@@ -8,33 +8,50 @@
 #define INITIAL_OUTPUT_SIZE 1024
 
 #define ARRAY_SIZE 32768
+
+#define OP_MASK 0xE0
+#define COUNT_MASK ~OP_MASK
+
+#define OP_PTR_INC 		(0<<5)
+#define OP_PTR_DEC 		(1<<5)
+#define OP_DATA_INC 	(2<<5)
+#define OP_DATA_DEC 	(3<<5)
+#define OP_INPUT 		(4<<5)
+#define OP_OUTPUT 		(5<<5)
+#define OP_LOOP_START 	(6<<5)
+#define OP_LOOP_STOP 	(7<<5)
+
+#define getOP(x) 		(x&OP_MASK)
+#define isOP(x, y)		(getOP(x)==y)
+#define getCount(x) 	(x&COUNT_MASK)
+
 typedef struct
 {
 	char *commands;
 	int pointer;
-	int size;
+	int reserved;
 }commands;
 
 void initCommand(commands *com)
 {
 	com->commands = NULL;
 	com->pointer = 0;
-	com->size = 0;
+	com->reserved = 0;
 }
 
 bool addCommand(commands *com, char c)
 {
-	if(com->pointer >= com->size)
+	if(com->pointer >= com->reserved)
 	{
 		// Re allocate memory
-		int newBufferSize = com->size+INITIAL_INSTRUCTION_SIZE;
+		int newBufferSize = com->reserved+INITIAL_INSTRUCTION_SIZE;
 		
 		com->commands = realloc(com->commands, newBufferSize);
 		if(com->commands == NULL)
 		{
 			return false;
 		}
-		com->size = newBufferSize;
+		com->reserved = newBufferSize;
 	}
 	com->commands[com->pointer] = c;
 	com->pointer++;
@@ -43,7 +60,7 @@ bool addCommand(commands *com, char c)
 
 void printCommand(commands *com)
 {
-	printf("Size: %d Commands BufferSize: %d\n", com->pointer, com->size);
+	printf("Size: %d Commands BufferSize: %d\n", com->pointer, com->reserved);
 	for(int i=0; i<com->pointer; i++)
 	{
 		printf("%c", com->commands[i]);
@@ -333,19 +350,6 @@ int readFile(char *filename, commands *com)
 	fclose(readFP);
 	return index;
 }
-
-#define OP_MASK 0xE0
-#define COUNT_MASK ~OP_MASK
-
-#define OP_PTR_INC 		(0<<5)
-#define OP_PTR_DEC 		(1<<5)
-#define OP_DATA_INC 	(2<<5)
-#define OP_DATA_DEC 	(3<<5)
-#define OP_INPUT 		(4<<5)
-#define OP_OUTPUT 		(5<<5)
-#define OP_LOOP_START 	(6<<5)
-#define OP_LOOP_STOP 	(7<<5)
-
 
 int main(int argc, char **argv)
 {
