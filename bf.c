@@ -9,8 +9,8 @@
 
 #define ARRAY_SIZE 32768
 
-#define OP_MASK 0xE0
-#define COUNT_MASK ~OP_MASK
+#define OP_MASK (unsigned char)0xE0
+#define COUNT_MASK (unsigned char)~OP_MASK
 
 #define OP_PTR_INC 		(unsigned char)(0<<5)
 #define OP_PTR_DEC 		(unsigned char)(1<<5)
@@ -74,11 +74,16 @@ bool addCommand(commands *com, unsigned char c)
 	}
 	
 	unsigned char curCom = com->commands[com->size];
+	printf("%c %c %s %d 0x%02x %s\n", printOperator(c), printOperator(curCom), isOP(curCom, c) ? "same" : "diff", getCount(curCom), COUNT_MASK, getCount(curCom) <= COUNT_MASK ? "small" : "large");
 	
-	if(isOP(curCom, c) && getCount(curCom) <= COUNT_MASK) 
+	if(isNOP(curCom))
+	{
+		com->commands[com->size] = c|0x01; // Current command is NOP only set the current command
+	}
+	else if(isOP(curCom, c) && getCount(curCom) <= COUNT_MASK) 
 	{
 		unsigned char count = getCount(curCom);
-		printf("Same command %c %d curCom: 0x%02x ", printOperator(c), count, curCom);
+		printf("Same command: %c %d curCom: 0x%02x ", printOperator(c), count, curCom);
 
 		count++;
 		com->commands[com->size] = c|count;
@@ -87,8 +92,8 @@ bool addCommand(commands *com, unsigned char c)
 	}
 	else
 	{
-		com->commands[com->size] = c|0x01;
 		com->size++;
+		com->commands[com->size] = c|0x01;
 	}
 	return true;
 }
@@ -452,6 +457,8 @@ int main(int argc, char **argv)
 	printf("OP_LOOP_START 0x%02x\n", OP_LOOP_START);
 	printf("OP_LOOP_STOP 0x%02x\n", OP_LOOP_STOP);
 	
+	unsigned int p = OP_DATA_DEC|0x01;
+	printf("p: 0x%02x, %c %s : %d %s\n", p, printOperator(p), isOP(p, OP_DATA_DEC) ? "true" : "false", getCount(p), (getCount(p)<COUNT_MASK) ? "smaller": "larger" );
 	
 	environment env;
 	initEnvironment(&env);
