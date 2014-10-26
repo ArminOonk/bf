@@ -22,14 +22,14 @@
 #define OP_LOOP_STOP 	(unsigned char)(7<<5)
 
 #define getOP(x) 		(x&OP_MASK)
-//#define isOP(x, y)		(getOP(x)==y)
+#define isOP(x, y)		(getOP(x)==y)
 #define isNOP(x)		(getCount(x) == 0)
 #define getCount(x) 	(x&COUNT_MASK)
 
-bool isOP(unsigned char x, unsigned char y)
+/*bool isOP(unsigned char x, unsigned char y)
 {
 	return (x&OP_MASK)==y;
-}
+}*/
 
 typedef struct
 {
