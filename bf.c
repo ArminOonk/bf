@@ -46,6 +46,7 @@ typedef struct
 {
 	unsigned char *commands;
 	int size;
+	int nrCommands;
 	int reserved;
 }commands;
 
@@ -53,6 +54,7 @@ void initCommand(commands *com)
 {
 	com->commands = NULL;
 	com->size = 0;
+	com->nrCommands = 0;
 	com->reserved = 0;
 }
 
@@ -74,7 +76,6 @@ bool addCommand(commands *com, unsigned char c)
 	}
 	
 	unsigned char curCom = com->commands[com->size];
-	printf("%c %c %s %d 0x%02x %s\n", printOperator(c), printOperator(curCom), isOP(curCom, c) ? "same" : "diff", getCount(curCom), COUNT_MASK, getCount(curCom) <= COUNT_MASK ? "small" : "large");
 	
 	if(isNOP(curCom))
 	{
@@ -83,28 +84,31 @@ bool addCommand(commands *com, unsigned char c)
 	else if(isOP(curCom, c) && getCount(curCom) <= COUNT_MASK) 
 	{
 		unsigned char count = getCount(curCom);
-		printf("Same command: %c %d curCom: 0x%02x ", printOperator(c), count, curCom);
-
+	
 		count++;
 		com->commands[com->size] = c|count;
-		
-		printf("newCom: %02x count: %d\n", com->commands[com->size], count);
 	}
 	else
 	{
 		com->size++;
 		com->commands[com->size] = c|0x01;
 	}
+	
+	com->nrCommands++;
 	return true;
 }
 
 void printCommand(commands *com)
 {
-	printf("Size: %d Commands BufferSize: %d\n", com->size, com->reserved);
+	printf("Command buffer: %d NrCommands: %d\n", com->size, com->nrCommands);
 	for(int i=0; i<com->size; i++)
 	{
 		unsigned char curCom = com->commands[i];
-		printf("%c number %d\n", printOperator(curCom), getCount(curCom));
+		printf("{%c, %d} ", printOperator(curCom), getCount(curCom));
+		if(i%8==7)
+		{
+			printf("\n");
+		}
 	}
 	printf("\n");
 }
@@ -298,8 +302,8 @@ unsigned int runEnvironment(environment *env, unsigned int maxInstructions)
 			continue;	// Skip NOPs
 		}
 		
-		instructions++;
 		unsigned char count = getCount(curCom);
+		instructions += count;
 		
 		if(isOP(curCom, OP_PTR_INC))
 		{
@@ -447,18 +451,6 @@ int main(int argc, char **argv)
 		printf("Usage: %s <filename>\n", argv[0]);
 		return -1;
 	}
-	
-	printf("OP_PTR_INC 0x%02x\n", OP_PTR_INC);
-	printf("OP_PTR_DEC 0x%02x\n", OP_PTR_DEC);
-	printf("OP_DATA_INC 0x%02x\n", OP_DATA_INC);
-	printf("OP_DATA_INC 0x%02x\n", OP_DATA_DEC);
-	printf("OP_INPUT 0x%02x\n", OP_INPUT);
-	printf("OP_OUTPUT 0x%02x\n", OP_OUTPUT);
-	printf("OP_LOOP_START 0x%02x\n", OP_LOOP_START);
-	printf("OP_LOOP_STOP 0x%02x\n", OP_LOOP_STOP);
-	
-	unsigned int p = OP_DATA_DEC|0x01;
-	printf("p: 0x%02x, %c %s : %d %s\n", p, printOperator(p), isOP(p, OP_DATA_DEC) ? "true" : "false", getCount(p), (getCount(p)<COUNT_MASK) ? "smaller": "larger" );
 	
 	environment env;
 	initEnvironment(&env);
