@@ -9,44 +9,26 @@
 
 #define ARRAY_SIZE 32768
 
-#define OP_MASK (unsigned char)0xE0
-#define COUNT_MASK (unsigned char)~OP_MASK
+#define OP_MASK 0xE0
+#define COUNT_MASK ~OP_MASK
 
-#define OP_PTR_INC 		(unsigned char)(0<<5)
-#define OP_PTR_DEC 		(unsigned char)(1<<5)
-#define OP_DATA_INC 	(unsigned char)(2<<5)
-#define OP_DATA_DEC 	(unsigned char)(3<<5)
-#define OP_INPUT 		(unsigned char)(4<<5)
-#define OP_OUTPUT 		(unsigned char)(5<<5)
-#define OP_LOOP_START 	(unsigned char)(6<<5)
-#define OP_LOOP_STOP 	(unsigned char)(7<<5)
+#define OP_PTR_INC 		(0<<5)
+#define OP_PTR_DEC 		(1<<5)
+#define OP_DATA_INC 	(2<<5)
+#define OP_DATA_DEC 	(3<<5)
+#define OP_INPUT 		(4<<5)
+#define OP_OUTPUT 		(5<<5)
+#define OP_LOOP_START 	(6<<5)
+#define OP_LOOP_STOP 	(7<<5)
 
 #define getOP(x) 		(x&OP_MASK)
-#define isOP(x, y)		(getOP(x)==getOP(y))
-#define isNOP(x)		(getCount(x) == 0)
+#define isOP(x, y)		(getOP(x)==y)
 #define getCount(x) 	(x&COUNT_MASK)
-
-char printOperator(unsigned char c)
-{
-	switch(getOP(c))
-	{
-		case OP_PTR_INC: return '>';
-		case OP_PTR_DEC: return '<';
-		case OP_DATA_INC: return '+';
-		case OP_DATA_DEC: return '-';
-		case OP_OUTPUT: return '.';
-		case OP_INPUT: return ',';
-		case OP_LOOP_START: return '[';
-		case OP_LOOP_STOP: return ']';
-	}
-	return '!';
-}
 
 typedef struct
 {
-	unsigned char *commands;
+	char *commands;
 	int size;
-	int nrCommands;
 	int reserved;
 }commands;
 
@@ -54,11 +36,10 @@ void initCommand(commands *com)
 {
 	com->commands = NULL;
 	com->size = 0;
-	com->nrCommands = 0;
 	com->reserved = 0;
 }
 
-bool addCommand(commands *com, unsigned char c)
+bool addCommand(commands *com, char c)
 {
 	if(com->size >= com->reserved)
 	{
@@ -66,49 +47,23 @@ bool addCommand(commands *com, unsigned char c)
 		int newBufferSize = com->reserved+INITIAL_INSTRUCTION_SIZE;
 		
 		com->commands = realloc(com->commands, newBufferSize);
-		
 		if(com->commands == NULL)
 		{
 			return false;
 		}
-		memset(com->commands+com->reserved, 0x00, INITIAL_INSTRUCTION_SIZE);
 		com->reserved = newBufferSize;
 	}
-	
-	unsigned char curCom = com->commands[com->size];
-	
-	if(isNOP(curCom))
-	{
-		com->commands[com->size] = c|0x01; // Current command is NOP only set the current command
-	}
-	else if(isOP(curCom, c) && getCount(curCom) <= COUNT_MASK) 
-	{
-		unsigned char count = getCount(curCom);
-	
-		count++;
-		com->commands[com->size] = c|count;
-	}
-	else
-	{
-		com->size++;
-		com->commands[com->size] = c|0x01;
-	}
-	
-	com->nrCommands++;
+	com->commands[com->size] = c;
+	com->size++;
 	return true;
 }
 
 void printCommand(commands *com)
 {
-	printf("Command buffer: %d NrCommands: %d\n", com->size, com->nrCommands);
+	printf("Size: %d Commands BufferSize: %d\n", com->size, com->reserved);
 	for(int i=0; i<com->size; i++)
 	{
-		unsigned char curCom = com->commands[i];
-		printf("{%c, %d} ", printOperator(curCom), getCount(curCom));
-		if(i%8==7)
-		{
-			printf("\n");
-		}
+		printf("%c", com->commands[i]);
 	}
 	printf("\n");
 }
@@ -220,136 +175,88 @@ int getInput(environment *env)
 	return retVal;
 }
 
-void incPtr(environment *env,unsigned char count)
-{
-	for(unsigned char i=0; i<count; i++)
-	{
-		env->arrayPtr++;
-		
-		if(env->arrayPtr >= ARRAY_SIZE)
-		{
-			env->arrayPtr = 0;
-		}
-	}
-}
-
-void decPtr(environment *env,unsigned char count)
-{
-	for(unsigned char i=0; i<count; i++)
-	{
-		env->arrayPtr--;
-						
-		if(env->arrayPtr < 0)
-		{
-			env->arrayPtr = ARRAY_SIZE-1;
-		}
-	}
-}
-
-void loopStart(environment *env,unsigned char count)
-{
-	for(unsigned char i=0; i<count; i++)
-	{
-		if(env->array[env->arrayPtr] == 0)
-		{
-			//Find closing bracket
-			int bal = 1;
-			do 
-			{
-				env->commandCounter++;
-				if(isOP(env->com->commands[env->commandCounter], OP_LOOP_START)) 
-				{
-					bal++;
-				}
-				else if (isOP(env->com->commands[env->commandCounter], OP_LOOP_STOP))
-				{
-					bal--;
-				}
-			}while ( bal != 0 && commandAvailable(env));
-		}
-	}
-}
-
-void loopStop(environment *env,unsigned char count)
-{
-	for(unsigned char i=0; i<count; i++)
-	{
-		int bal = 0;
-		do 
-		{
-			if(isOP(env->com->commands[env->commandCounter], OP_LOOP_START)) 
-			{
-				bal++;
-			}
-			else if (isOP(env->com->commands[env->commandCounter], OP_LOOP_STOP)) 
-			{
-				bal--;
-			}
-			env->commandCounter--;
-		} while ( bal != 0 && commandAvailable(env));
-	}
-}
-
 unsigned int runEnvironment(environment *env, unsigned int maxInstructions)
 {	
 	unsigned int instructions = 0;
 	while(commandAvailable(env) && instructions < maxInstructions)
 	{
+		instructions++;
 		char curCom = env->com->commands[env->commandCounter];
 		
-		if(isNOP(curCom))
+		if(curCom == '>')
 		{
-			continue;	// Skip NOPs
-		}
-		
-		unsigned char count = getCount(curCom);
-		instructions += count;
-		
-		if(isOP(curCom, OP_PTR_INC))
-		{
-			incPtr(env, count);
-		}
-		else if(isOP(curCom, OP_PTR_DEC))
-		{
-			decPtr(env, count);
-		}
-		else if(isOP(curCom, OP_DATA_INC))
-		{
-			env->array[env->arrayPtr] += count;
-		}
-		else if(isOP(curCom, OP_DATA_DEC))
-		{
-			env->array[env->arrayPtr] -= count;
-		}
-		else if(isOP(curCom, OP_OUTPUT))
-		{
-			for(unsigned char i=0; i<count; i++)
+			env->arrayPtr++;
+			
+			if(env->arrayPtr >= ARRAY_SIZE)
 			{
-				addOutput(env->output, env->array[env->arrayPtr]);
+				env->arrayPtr = 0;
 			}
 		}
-		else if(isOP(curCom, OP_INPUT))
+		else if(curCom == '<')
 		{
-			for(unsigned char i=0; i<count; i++)
+			env->arrayPtr--;
+						
+			if(env->arrayPtr < 0)
 			{
-				int input = getInput(env);
-				if(input != -1)
+				env->arrayPtr = ARRAY_SIZE-1;
+			}
+		}
+		else if(curCom == '+')
+		{
+			env->array[env->arrayPtr]++;
+		}
+		else if(curCom == '-')
+		{
+			env->array[env->arrayPtr]--;
+		}
+		else if(curCom == '.')
+		{
+			addOutput(env->output, env->array[env->arrayPtr]);
+		}
+		else if(curCom == ',')
+		{
+			// TODO: Implement this
+			int input = getInput(env);
+			if(input != -1)
+			{
+				env->array[env->arrayPtr] = input;
+			}
+		}
+		else if(curCom == '[')
+		{
+			if(env->array[env->arrayPtr] == 0)
+			{
+				//Find closing bracket
+				int bal = 1;
+				do 
 				{
-					env->array[env->arrayPtr] = input;
-				}
+					env->commandCounter++;
+					if(env->com->commands[env->commandCounter] == '[') 
+					{
+						bal++;
+					}
+					else if (env->com->commands[env->commandCounter] == ']')
+					{
+						bal--;
+					}
+				}while ( bal != 0 && commandAvailable(env));
 			}
 		}
-		else if(isOP(curCom, OP_LOOP_START))
+		else if(curCom == ']')
 		{
-			loopStart(env, count);
-		}
-		else if(isOP(curCom, OP_LOOP_STOP))
-		{
-			loopStop(env, count);
-		}
-		else
-		{
-			printf("NOP\n");
+			int bal = 0;
+			do 
+			{
+				if(env->com->commands[env->commandCounter] == '[') 
+				{
+					bal++;
+				}
+				else if (env->com->commands[env->commandCounter] == ']') 
+				{
+					bal--;
+				}
+				env->commandCounter--;
+			} while ( bal != 0 && commandAvailable(env));
 		}
 		
 		env->commandCounter++;
@@ -402,35 +309,35 @@ int readFile(char *filename, commands *com)
 		switch(x)
 		{
 			case '>':
-			addCommand(com, OP_PTR_INC);
+			addCommand(com, x);
 			break;
 			
 			case '<':
-			addCommand(com, OP_PTR_DEC);
+			addCommand(com, x);
 			break;
 			
 			case '+':
-			addCommand(com, OP_DATA_INC);
+			addCommand(com, x);
 			break;
 			
 			case '-':
-			addCommand(com, OP_DATA_DEC);
+			addCommand(com, x);
 			break;
 			
 			case '.':
-			addCommand(com, OP_OUTPUT);
+			addCommand(com, x);
 			break;
 			
 			case ',':
-			addCommand(com, OP_INPUT);
+			addCommand(com, x);
 			break;
 			
 			case '[':
-			addCommand(com, OP_LOOP_START);
+			addCommand(com, x);
 			break;
 			
 			case ']':
-			addCommand(com, OP_LOOP_STOP);
+			addCommand(com, x);
 			break;
 			
 			default:
