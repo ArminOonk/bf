@@ -4,33 +4,8 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-#define INITIAL_INSTRUCTION_SIZE 1024
-#define INITIAL_OUTPUT_SIZE 1024
+#include "bf.h"
 
-#define ARRAY_SIZE 32768
-
-#define OP_MASK 0xE0
-#define COUNT_MASK ~OP_MASK
-
-#define OP_PTR_INC 		(0<<5)
-#define OP_PTR_DEC 		(1<<5)
-#define OP_DATA_INC 	(2<<5)
-#define OP_DATA_DEC 	(3<<5)
-#define OP_INPUT 		(4<<5)
-#define OP_OUTPUT 		(5<<5)
-#define OP_LOOP_START 	(6<<5)
-#define OP_LOOP_STOP 	(7<<5)
-
-#define getOP(x) 		(x&OP_MASK)
-#define isOP(x, y)		(getOP(x)==y)
-#define getCount(x) 	(x&COUNT_MASK)
-
-typedef struct
-{
-	char *commands;
-	int size;
-	int reserved;
-}commands;
 
 void initCommand(commands *com)
 {
@@ -73,13 +48,6 @@ void cleanupCommand(commands *com)
 	free(com->commands);
 }
 
-typedef struct
-{
-	char *buffer;
-	int length;
-	int reserved;
-}output;
-
 void initOutput(output *out)
 {
 	out->buffer = NULL;
@@ -120,25 +88,6 @@ void cleanupOutput(output *out)
 {
 	free(out->buffer);
 }
-
-typedef struct
-{
-	commands *com;
-	output *output;	
-	
-	// Working memory
-	char array[ARRAY_SIZE];
-	int arrayPtr;
-	
-	// Command counter
-	int commandCounter;
-	
-	// Input
-	char *input;
-	int inputSize;
-	int inputPtr;
-	
-}environment;
 
 void initEnvironment(environment *env)
 {
@@ -372,7 +321,6 @@ int main(int argc, char **argv)
 	unsigned int instructions = runEnvironment(&env, (0xffffffff-1));
 	printf("Instructions required: %u\n", instructions);
 	printOutput(env.output);
-	//printArray(&env, 32);
 	
 	cleanupEnvironment(&env);
 }
