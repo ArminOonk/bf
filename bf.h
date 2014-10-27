@@ -5,6 +5,7 @@
 #define INITIAL_OUTPUT_SIZE 1024
 
 #define ARRAY_SIZE 32768
+#include <stdbool.h>
 
 typedef struct
 {
