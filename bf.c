@@ -3,9 +3,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include "bf.h"
-
 
 void initCommand(commands *com)
 {
@@ -74,10 +74,16 @@ bool addOutput(output *out, char c)
 	return true;
 }
 
-void printOutput(output *out)
+void printOutput(output *out, int max)
 {
+	if(max == -1 || max > out->length)
+	{
+		max = out->length;
+	}
+	
+	
 	printf("Output size %d : ", out->length);
-	for(int i=0; i<out->length; i++)
+	for(int i=0; i<max; i++)
 	{
 		printf("%c", out->buffer[i]);
 	}
@@ -300,27 +306,74 @@ int readFile(char *filename, commands *com)
 	return index;
 }
 
-int main(int argc, char **argv)
+void randomCommands(commands *com)
 {
-	if(argc < 2)
+	srand(time(NULL));
+	for(int i=0; i<100; i++)
 	{
-		printf("Usage: %s <filename>\n", argv[0]);
-		return -1;
+		switch(rand()%9)
+		{
+			case 0:
+			addCommand(com, '>');
+			break;
+			
+			case 1:
+			addCommand(com, '<');
+			break;
+			
+			case 2:
+			addCommand(com, '+');
+			break;
+			
+			case 3:
+			addCommand(com, '-');
+			break;
+			
+			case 4:
+			addCommand(com, '.');
+			break;
+			
+			case 5:
+			addCommand(com, ',');
+			break;
+			
+			case 6:
+			addCommand(com, '[');
+			break;
+			
+			case 7:
+			addCommand(com, ']');
+			break;
+			
+			case 8:
+			addCommand(com, ' ');
+			break;
+		}
 	}
-	
+}
+
+int main(int argc, char **argv)
+{	
 	environment env;
 	initEnvironment(&env);
-		
-	if(readFile(argv[1], env.com) < 0)
+	
+	if(argc >= 2)
 	{
-		printf("Error reading file\n");
+		if(readFile(argv[1], env.com) < 0)
+		{
+			printf("Error reading file\n");
+		}
+	}
+	else
+	{
+		randomCommands(env.com);
 	}
 	
 	printCommand(env.com);
 	
-	unsigned int instructions = runEnvironment(&env, (0xffffffff-1));
+	unsigned int instructions = runEnvironment(&env, 0xffffff); // MAX: (0xffffffff-1)
 	printf("Instructions required: %u\n", instructions);
-	printOutput(env.output);
+	printOutput(env.output, 10);
 	
 	cleanupEnvironment(&env);
 }
