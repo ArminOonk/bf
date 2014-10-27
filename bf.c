@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "bf.h"
 
@@ -170,7 +171,6 @@ unsigned int runEnvironment(environment *env, unsigned int maxInstructions)
 		}
 		else if(curCom == ',')
 		{
-			// TODO: Implement this
 			int input = getInput(env);
 			if(input != -1)
 			{
@@ -306,58 +306,68 @@ int readFile(char *filename, commands *com)
 	return index;
 }
 
-void randomCommands(commands *com)
+char randCommand()
 {
-	srand(time(NULL));
-	for(int i=0; i<100; i++)
+	switch(rand()%9)
 	{
-		switch(rand()%9)
-		{
-			case 0:
-			addCommand(com, '>');
-			break;
-			
-			case 1:
-			addCommand(com, '<');
-			break;
-			
-			case 2:
-			addCommand(com, '+');
-			break;
-			
-			case 3:
-			addCommand(com, '-');
-			break;
-			
-			case 4:
-			addCommand(com, '.');
-			break;
-			
-			case 5:
-			addCommand(com, ',');
-			break;
-			
-			case 6:
-			addCommand(com, '[');
-			break;
-			
-			case 7:
-			addCommand(com, ']');
-			break;
-			
-			case 8:
-			addCommand(com, ' ');
-			break;
-		}
+		case 0: return '>';
+		case 1: return '<';
+		case 2: return '+';
+		case 3: return '-';
+		case 4: return '.';
+		case 5: return ',';
+		case 6: return '[';		
+		case 7: return ']';
+		default: return ' ';
 	}
 }
 
-int main(int argc, char **argv)
-{	
-	environment env;
-	initEnvironment(&env);
+void randomCommands(commands *com, int max)
+{
+	for(int i=0; i<rand()%max; i++)
+	{
+		addCommand(com, randCommand());
+	}
+}
+
+const char desiredResult[] = "HI";
+
+unsigned int maxFitness()
+{
+	return 256*strlen(desiredResult);
+}
+
+unsigned int fitnessFunction(environment *env)
+{
+	unsigned int fitness = 0;
+	int desiredLength = strlen(desiredResult);
+	int end = env->output->length;
 	
-	if(argc >= 2)
+	if(end > desiredLength)
+	{
+		end = desiredLength;
+	}
+	
+	for(int i=0; i<end; i++)
+	{
+		fitness += (256 - abs((int)env->output->buffer[i] - (int)desiredResult[i]));
+	}
+	
+	return fitness;
+}
+
+int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
+{
+    long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
+    result->tv_sec = diff / 1000000;
+    result->tv_usec = diff % 1000000;
+
+    return (diff<0);
+}
+
+int main(int argc, char **argv)
+{			
+	/*if(argc >= 2)
 	{
 		if(readFile(argv[1], env.com) < 0)
 		{
@@ -367,13 +377,58 @@ int main(int argc, char **argv)
 	else
 	{
 		randomCommands(env.com);
+	}*/
+	environment env;
+	int maxTries = 1000000;
+	unsigned int bestFitness = 0;
+	unsigned int endFitness = maxFitness(); 
+	srand(time(NULL));
+	
+	struct timeval tStart, tEnd;
+	gettimeofday(&tStart, NULL);
+	
+	for(int i=0; i<maxTries; i++)
+	{
+		initEnvironment(&env);
+		if(argc >= 2 && i==0)
+		{
+			if(readFile(argv[1], env.com) < 0)
+			{
+				printf("Error reading file\n");
+			}
+		}
+		else
+		{
+			randomCommands(env.com, 256);
+		}
+		//randomCommands(env.com);
+				
+		unsigned int instructions = runEnvironment(&env, 0xffff); // MAX: (0xffffffff-1)
+		unsigned int fitness = fitnessFunction(&env);
+		
+		if(fitness > 0)
+		{
+			if(fitness > bestFitness)
+			{
+				printf("Round %d/%d: ", i+1, maxTries);
+				printf("Instructions required: %u Fitness: %u\n", instructions, fitness);
+				bestFitness = fitness;
+			}
+			
+			if(fitness >= endFitness)
+			{
+				printf("Solution found!\n");
+				printCommand(env.com);
+				printOutput(env.output, 10);
+				break;				
+			}
+		}
+				
+		cleanupEnvironment(&env);
 	}
-	
-	printCommand(env.com);
-	
-	unsigned int instructions = runEnvironment(&env, 0xffffff); // MAX: (0xffffffff-1)
-	printf("Instructions required: %u\n", instructions);
-	printOutput(env.output, 10);
-	
-	cleanupEnvironment(&env);
+	gettimeofday(&tEnd, NULL);
+	struct timeval tDiff;
+	timeval_subtract(&tDiff, &tEnd, &tStart);
+    printf("Computation took: %ld.%06ld seconds\n", tDiff.tv_sec, tDiff.tv_usec);
+	printf("Best fitness: %u\n", bestFitness);
 }
