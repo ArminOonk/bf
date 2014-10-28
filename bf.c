@@ -82,7 +82,10 @@ bool addOutput(output *out, char c)
 
 void cleanupOutput(output *out)
 {
-	free(out->buffer);
+	if(out->buffer != NULL)
+	{
+		free(out->buffer);
+	}
 }
 
 void initEnvironment(environment *env)
@@ -201,25 +204,6 @@ unsigned int runEnvironment(environment *env, unsigned int maxInstructions)
 		env->commandCounter++;
 	}
 	return instructions;
-}
-
-void printArray(environment *env, int len)
-{
-	printf("Raw array: ");
-	for(int i=0; i<len; i++)
-	{
-		if(i%16 == 0)
-		{
-			printf("\n");
-		}
-		else if(i%16 == 8)
-		{
-			printf(" ");
-		}
-		
-		printf("0x%02X ", env->array[i]);
-	}
-	printf("\n");
 }
 
 void cleanupEnvironment(environment *env)

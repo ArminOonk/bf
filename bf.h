@@ -54,7 +54,4 @@ void initEnvironment(environment *env);
 unsigned int runEnvironment(environment *env, unsigned int maxInstructions);
 void cleanupEnvironment(environment *env);
 
-
-
-
 #endif
