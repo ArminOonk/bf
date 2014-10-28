@@ -31,19 +31,27 @@ bool addCommand(commands *com, char c)
 	return true;
 }
 
-void printCommand(commands *com)
+void copyCommand(commands *from, commands *to)
 {
-	printf("Size: %d Commands BufferSize: %d\n", com->size, com->reserved);
-	for(int i=0; i<com->size; i++)
+	cleanupCommand(to);
+	initCommand(to);
+	for(int i=0; i<from->size; i++)
 	{
-		printf("%c", com->commands[i]);
+		addCommand(to, from->commands[i]); 
 	}
-	printf("\n");
 }
 
 void cleanupCommand(commands *com)
 {
-	free(com->commands);
+	if(com->commands != NULL)
+	{
+		free(com->commands);
+	}
+}
+
+bool commandAvailable(environment *env)
+{
+	return (env->commandCounter < env->com->size) && (env->commandCounter >= 0);
 }
 
 void initOutput(output *out)
@@ -72,22 +80,6 @@ bool addOutput(output *out, char c)
 	return true;
 }
 
-void printOutput(output *out, int max)
-{
-	if(max == -1 || max > out->length)
-	{
-		max = out->length;
-	}
-	
-	
-	printf("Output size %d : ", out->length);
-	for(int i=0; i<max; i++)
-	{
-		printf("%c", out->buffer[i]);
-	}
-	printf("\n");
-}
-
 void cleanupOutput(output *out)
 {
 	free(out->buffer);
@@ -109,11 +101,6 @@ void initEnvironment(environment *env)
 	env->input = NULL;
 	env->inputSize = 0;
 	env->inputPtr = 0;
-}
-
-bool commandAvailable(environment *env)
-{
-	return (env->commandCounter < env->com->size) && (env->commandCounter >= 0);
 }
 
 int getInput(environment *env)
@@ -242,29 +229,4 @@ void cleanupEnvironment(environment *env)
 
 	free(env->com);
 	free(env->output);
-}
-
-
-char randCommand()
-{
-	switch(rand()%9)
-	{
-		case 0: return '>';
-		case 1: return '<';
-		case 2: return '+';
-		case 3: return '-';
-		case 4: return '.';
-		case 5: return ',';
-		case 6: return '[';		
-		case 7: return ']';
-		default: return ' ';
-	}
-}
-
-void randomCommands(commands *com, int max)
-{
-	for(int i=0; i<rand()%max; i++)
-	{
-		addCommand(com, randCommand());
-	}
 }

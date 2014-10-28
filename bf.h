@@ -43,11 +43,14 @@ typedef struct
 void initCommand(commands *com);
 bool addCommand(commands *com, char c);
 void cleanupCommand(commands *com);
+void copyCommand(commands *from, commands *to);
+bool commandAvailable(environment *env);
+
 void initOutput(output *out);
 bool addOutput(output *out, char c);
 void cleanupOutput(output *out);
+
 void initEnvironment(environment *env);
-bool commandAvailable(environment *env);
 unsigned int runEnvironment(environment *env, unsigned int maxInstructions);
 void cleanupEnvironment(environment *env);
 
